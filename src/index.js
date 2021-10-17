@@ -2,6 +2,7 @@ const JSON_SERVER_API_ENDPOINT = "http://localhost:3000/toys/";
 
 const addToyForm = document.querySelector(".add-toy-form");
 const createToyBtn = document.querySelector(".submit");
+const toyCollection = document.querySelector("#toy-collection");
 
 let addToy = false;
 
@@ -13,21 +14,44 @@ class Toy {
   }
 }
 
-const addLike = (card, id) => {
-  const likes = ++card.querySelector(".likes").textContent; // I'm very proud of this line of code
+const postToy =  e => {
+  e.preventDefault();
+  const formInput = [...document.querySelectorAll('input[type="text"]')];
+  const [{value: name}, {value: image}] = formInput;
+  fetch(JSON_SERVER_API_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify(new Toy(name, image))
+  }).then(res => {
+    if(!res.ok) throw Error(res.statusText)
+    return getToys()
+  }).catch(err => console.error(err));
+}
+
+const addLike = e => {
+  const card = e.target.parentElement;
+  const id = e.target.id;
+  const likes = card.querySelector(".likes");
   fetch(JSON_SERVER_API_ENDPOINT + id, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
       "Accept": "application/json"
     },
-    body: JSON.stringify({ likes })    
-  })
+    body: JSON.stringify({ likes: ++likes.textContent })    
+  }).then(res => {
+    if (!res.ok) throw Error(res.statusText);
+    return res.json();
+  }).then(data => likes.textContent = data.likes)
+    .catch(err => console.error(err));
 };
 
-const displayCards = (cards) => {
+const displayCards = cards => {
   const toyCollection = document.querySelector("#toy-collection");
-  let newHTMLState = cards.join('\n');
+  let newHTMLState = cards.reverse().join('\n');
   toyCollection.innerHTML = newHTMLState;
 } 
 
@@ -40,7 +64,7 @@ const buildCards = toyData => {
       <h2>${name}</h2>
       <img src="${image}" class="toy-avatar" />
       <p><span class="likes">${likes}</span> Likes </p>
-      <button class="like-btn" id="${id}" onclick="addLike(this.parentElement, this.id)">Like <3</button>
+      <button class="like-btn" id="${id}">Like <3</button>
     `;
     newCard.innerHTML = newCardHTML;
     newCard.classList.add("card");
@@ -72,21 +96,13 @@ document.addEventListener("DOMContentLoaded", () => {
       toyFormContainer.style.display = "none";
     }
   });
-  addToyForm.addEventListener("submit", e => {
-    e.preventDefault();
-    const formInput = [...document.querySelectorAll('input[type="text"]')];
-    const [{value: name}, {value: image}] = formInput;
-    fetch(JSON_SERVER_API_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(new Toy(name, image))
-    }).then(() => getToys())
-    .catch(err => console.error(err));
-  });
+  addToyForm.addEventListener("submit",postToy);
+  toyCollection.addEventListener('click', addLike)
   getToys();
 });
 
+
+/*
+onclick="addLike(this.parentElement, this.id)"
+*/
 
